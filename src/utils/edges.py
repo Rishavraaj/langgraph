@@ -1,7 +1,8 @@
 from dotenv import load_dotenv
-from utils.states import GenerateAnalystsState
+from utils.states import GenerateAnalystsState, InterviewState
 from typing import Literal
 from langgraph.graph import END
+from langchain_core.messages import AIMessage
 
 
 
@@ -17,3 +18,18 @@ def should_continue(state: GenerateAnalystsState) -> Literal["create_analysts", 
     if human_analyst_feedback:
         return "create_analysts"
     return END
+
+def routes_messages(state: InterviewState, name: str="expert"):
+    """Route between question ans answer"""
+
+    #get messages
+    messages = state["messages"]
+    max_num_turns = state.get("max_num_turns", 2)
+
+    #check the number if expert answer
+    num_responses = len([m for m in messages if isinstance(m, AIMessage) and m.name == name])
+
+    if num_responses >= max_num_turns:
+        return "save_interview"
+    
+    return "ask_question"
