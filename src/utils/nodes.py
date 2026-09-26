@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
-from utils.states import GenerateAnalystsState, InterviewState
+from utils.states import GenerateAnalystsState, InterviewState, ResearchGraphState
 from utils.models import llm
 from utils.objects import Analyst, Perspective, SearchQuery
-from utils.prompts import analyst_instructions, question_instruction, search_instructions, answer_instructions, section_writer_instructions
+from utils.prompts import analyst_instructions, question_instruction, search_instructions, answer_instructions, section_writer_instructions, intro_conclusion_instructions, report_writer_instructions
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.types import interrupt
 from langchain_tavily import TavilySearch
@@ -169,3 +169,59 @@ def write_section(state: InterviewState):
     section = llm.invoke([SystemMessage(content=system_message)]+[HumanMessage(content=f"Use this source to write your section : {context}")])
 
     return {"sections": [section.content]}
+
+def write_report(state: ResearchGraphState):
+    """Write the final report"""
+
+    sections = state["sections"]
+    topic = state["topic"]
+
+    formatted_str_sections = "\n\n".join([f"{section}" for section in sections])
+
+    system_message = report_writer_instructions.format(topic=topic, context=formatted_str_sections)
+    report = llm.invoke([SystemMessage(content=system_message)] + [HumanMessage(content="Write a report based upon these memos.")])
+
+    return {"content": report.content}
+
+def write_introduction(state: ResearchGraphState):
+
+    sections = state["sections"]
+    topic = state["topic"]
+
+    formatted_str_sections = "\n\n".join([f"{section}" for section in sections])
+
+    system_message = intro_conclusion_instructions.format(topic=topic, formatted_str_sections=formatted_str_sections)
+    intro = llm.invoke([SystemMessage(content=system_message)] + [HumanMessage(content="Write a report introduction")])
+
+    return {"introduction": intro.content}
+
+def write_conclusion(state: ResearchGraphState):
+
+    sections = state["sections"]
+    topic = state["topic"]
+
+    formatted_str_sections = "\n\n".join([f"{section}" for section in sections])
+
+    system_message = intro_conclusion_instructions.format(topic=topic, formatted_str_sections=formatted_str_sections)
+    conclusion = llm.invoke([SystemMessage(content=system_message)] + [HumanMessage(content="Write a report conclusion")])
+
+    return {"conclusion": conclusion.content}
+
+def finalize_report(state: ResearchGraphState):
+    """ The is the "reduce" step where we gather all the sections, combine them, and reflect on them to write the intro/conclusion """
+    # Save full final report
+    content = state["content"]
+    if content.startswith("## Insights"):
+        content = content.strip("## Insights")
+    if "## Sources" in content:
+        try:
+            content, sources = content.split("\n## Sources\n")
+        except:
+            sources = None
+    else:
+        sources = None
+
+    final_report = state["introduction"] + "\n\n---\n\n" + content + "\n\n---\n\n" + state["conclusion"]
+    if sources is not None:
+        final_report += "\n\n## Sources\n" + sources
+    return {"final_report": final_report}

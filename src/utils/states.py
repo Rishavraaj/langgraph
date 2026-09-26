@@ -17,3 +17,14 @@ class InterviewState(MessagesState):
     analyst: Analyst # my analyst
     interview: str # interview transcript
     sections: list # final key we duplicated in outer state fro send() api
+
+class ResearchGraphState(TypedDict):
+    topic: str
+    max_analysts: int
+    human_analyst_feedback: NotRequired[Optional[str]]
+    analysts: List[Analyst]
+    sections: Annotated[list, operator.add]
+    introduction: str
+    content: str
+    conclusion: str
+    final_report: str
