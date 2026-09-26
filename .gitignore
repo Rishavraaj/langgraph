@@ -1,1 +1,29 @@
+# Environment
 .env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# uv
+uv.lock
+
+# LangGraph
+.langgraph_api/
+
+# IDE
+.vscode/
+.idea/
+
+# Qodo
+.qodo/
+
+# macOS
+.DS_Store
